@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逐個顯示結果的角子機式抽籤程式</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #2c3e50;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            padding: 20px;
+            width: 350px;
+            text-align: center;
+            color: white;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            resize: vertical;
+            background-color: #34495e;
+            color: white;
+        }
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #34495e;
+            color: white;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        .slot-machine {
+            background-color: #34495e;
+            border: 3px solid #f39c12;
+            border-radius: 5px;
+            height: 50px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+        .slot-window {
+            height: 50px;
+            line-height: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            text-align: center;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 50px;
+        }
+        #drawCount {
+            font-size: 18px;
+            margin-top: 10px;
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>逐個顯示結果的角子機式抽籤程式</h1>
+        <textarea id="names" placeholder="請輸入參與抽籤的人名，每行一個"></textarea>
+        <div class="input-group">
+            <label for="count">抽出人數：</label>
+            <input type="number" id="count" min="1" value="1">
+        </div>
+        <button onclick="startSlotMachine()">開始抽籤</button>
+        <div class="slot-machine">
+            <div class="slot-window" id="slotWindow"></div>
+        </div>
+        <div id="drawCount"></div>
+        <div id="result"></div>
+    </div>
+
+    <audio id="spinSound" src="/api/placeholder/spin-sound.mp3" preload="auto"></audio>
+    <audio id="winSound" src="/api/placeholder/win-sound.mp3" preload="auto"></audio>
+
+    <script>
+        let names = [];
+        let selectedNames = [];
+        let currentIndex = 0;
+        let spinning = false;
+        let totalDraws = 0;
+        let currentDraw = 0;
+        const spinSound = document.getElementById('spinSound');
+        const winSound = document.getElementById('winSound');
+
+        function startSlotMachine() {
+            if (spinning) return;
+
+            const namesText = document.getElementById('names').value;
+            totalDraws = parseInt(document.getElementById('count').value);
+            names = namesText.split('\n').filter(name => name.trim() !== '');
+            selectedNames = [];
+            currentDraw = 0;
+
+            if (names.length === 0) {
+                alert('請輸入參與抽籤的人名');
+                return;
+            }
+
+            if (totalDraws > names.length) {
+                alert('抽出人數不能大於參與人數');
+                return;
+            }
+
+            spinning = true;
+            document.getElementById('result').innerHTML = '';
+            updateDrawCount();
+            spinSlot();
+        }
+
+        function spinSlot() {
+            const slotWindow = document.getElementById('slotWindow');
+            let duration = 50;
+            let iterations = 40;
+
+            spinSound.currentTime = 0;
+            spinSound.play();
+
+            function spin() {
+                if (iterations > 0) {
+                    currentIndex = (currentIndex + 1) % names.length;
+                    slotWindow.textContent = names[currentIndex];
+                    setTimeout(spin, duration);
+                    iterations--;
+                    duration += 5;
+                } else {
+                    spinSound.pause();
+                    winSound.currentTime = 0;
+                    winSound.play();
+
+                    const selectedIndex = Math.floor(Math.random() * names.length);
+                    const selectedName = names[selectedIndex];
+                    slotWindow.textContent = selectedName;
+                    selectedNames.push(selectedName);
+                    names.splice(selectedIndex, 1);
+
+                    currentDraw++;
+                    updateDrawCount();
+                    displayResult();
+
+                    if (currentDraw < totalDraws) {
+                        setTimeout(() => spinSlot(), 2000);
+                    } else {
+                        spinning = false;
+                    }
+                }
+            }
+
+            spin();
+        }
+
+        function displayResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '抽中的人：<br>' + selectedNames.join('<br>');
+        }
+
+        function updateDrawCount() {
+            const drawCountDiv = document.getElementById('drawCount');
+            drawCountDiv.textContent = `抽籤進度：${currentDraw}/${totalDraws}`;
+        }
+    </script>
+</body>
+</html>
